@@ -1,0 +1,150 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        #monitor {
+            position: relative;
+            width: 400px;
+            height: 300px;
+            padding: 0;
+            margin: 0;
+        }
+
+            #monitor video {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 10;
+                opacity: 1;
+                transition: opacity .1s linear;
+            }
+
+                #monitor video:hover {
+                    opacity: .5;
+                }
+
+            #monitor img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 5;
+            }
+    </style>
+</head>
+<body>
+    <h1>Loaded</h1>
+    <div>
+        <button id="btn-shutter">Capture Frame</button>
+        <button id="btn-export">Render Video</button>
+    </div>
+    <div id="monitor">
+        <img id="image" width="400" height="300" />
+        <video width="400" height="300" id="video"></video>
+    </div>
+    <script src="scripts/rx.lite.min.js"></script>
+    <script>
+        "use strict";
+        // load webservice
+        var Observable = Rx.Observable;
+        var Subject = Rx.Subject;
+
+
+        function leadingZero(number) {
+            if (number < 10) return '0000' + number.toString();
+            if (number < 100) return '000' + number.toString();
+            if (number < 1000) return '00' + number.toString();
+            if (number < 10000) return '0' + number.toString();
+            return number.toString();
+        }
+        function format(str, replacements) {
+            return str.replace(/\{([0-9]{1,3})\}/g, function (a, b) { return replacements[b]; });
+        }
+
+        function getEl(selector) {
+            return document.querySelector(selector);
+        }
+
+        var worker = new Worker(format('webservices/myWebWorker.js?seed={0}', [Math.floor(Math.random() * 1000)]));
+
+
+        /* REGISTER STREAMS */
+        var workerEvent$ = Observable.fromEvent(worker, 'message').map(x => x.data);
+        var workerReady$ = workerEvent$.filter(x => x.type === 'ready');
+
+        /* - INPUTS */
+        var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');
+
+        var exportClick$ = Observable.fromEvent(getEl('#btn-export'), 'click');
+
+        //        var newFrame$ = new Subject();
+        var frames$ = shutterClick$.flatMapLatest(function captchaFrame(e) {
+            //canvas = null;
+            return Observable.fromPromise(new Promise(function (fulfill, reject) {
+                var w = video.videoWidth;
+                var h = video.videoHeight;
+                var videoAspect = w / h;
+                var canvas;
+                canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                var cxt = canvas.getContext('2d');
+                cxt.drawImage(video, 0, 0, w, h);
+                canvas.toBlob(function (blob) {
+                    fulfill(blob);
+                });
+            }));
+        }).scan(function (frames, blob) {
+            frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: blob });
+            return frames;
+        }, []);
+
+        var export$ = exportClick$.withLatestFrom(frames$).map(x => x[1]);
+
+        /* SUBSCRIPTIONS */
+        frames$.subscribe(x => console.log(x));
+
+        workerReady$.subscribe(function (e) { console.log(e); });
+
+        frames$.subscribe(x => console.log(x.length));
+
+        export$.subscribe(function (frames) { console.log(frames); });
+
+
+
+
+        var video = document.getElementById('video');
+
+
+        function useWebCamStream(stream) {
+            let videoStream = stream;
+
+            console.info('Connecting: ', stream.getVideoTracks()[0].label);
+
+            if (video.mozSrcObject !== undefined) { //FF18a
+                video.mozSrcObject = stream;
+            } else {
+                video.src = window.URL.createObjectURL(stream);
+            }
+            video.onloadedmetadata = function () {
+                //  video.width = getInitialWidth();
+                //  video.height = getInitialWidth() / (video.videoWidth / video.videoHeight);
+
+            }
+        }
+
+        
+        
+
+        function UseImage(src) {
+            document.getElementById('image').src = src;
+        }
+
+      
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(useWebCamStream);
+
+
+    </script>
+</body>
+</html>
