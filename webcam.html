@@ -98,7 +98,7 @@
         }).scan(function (frames, blob) {
             frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: blob });
             return frames;
-        }, []);
+        }, []).share();
 
         var export$ = exportClick$.withLatestFrom(frames$).map(x => x[1]);
 
