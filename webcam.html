@@ -38,6 +38,7 @@
     <div>
         <button id="btn-shutter">Capture Frame</button>
         <button id="btn-export">Render Video</button>
+        <ul id="messages"></ul>
     </div>
     <div id="monitor">
         <img id="image" width="400" height="300" />
@@ -50,12 +51,18 @@
         var Observable = Rx.Observable;
         var Subject = Rx.Subject;
 
+        function log(message) {
+            var messages = document.getElementById('messages');
+            var m = document.createElement('li');
+            m.innerHTML = JSON.stringify(message.data);
+            messages.appendChild(m);
+        }
 
         function leadingZero(number) {
-            if (number < 10) return '0000' + number.toString();
-            if (number < 100) return '000' + number.toString();
-            if (number < 1000) return '00' + number.toString();
-            if (number < 10000) return '0' + number.toString();
+            //if (number < 10) return '0000' + number.toString();
+            //if (number < 100) return '000' + number.toString();
+            //if (number < 1000) return '00' + number.toString();
+            //if (number < 10000) return '0' + number.toString();
             return number.toString();
         }
         function format(str, replacements) {
@@ -66,15 +73,19 @@
             return document.querySelector(selector);
         }
 
-        var worker = new Worker(format('webservices/myWebWorker.js?seed={0}', [Math.floor(Math.random() * 1000)]));
-
+        var worker = new Worker(format('webworker/myWebWorker.js?seed={0}', [Math.floor(Math.random() * 1000)]));
 
         /* REGISTER STREAMS */
-        var workerEvent$ = Observable.fromEvent(worker, 'message').map(x => x.data);
-        var workerReady$ = workerEvent$.filter(x => x.type === 'ready');
 
+        /* WORKER */
+        var workerEvent$ = Observable.fromEvent(worker, 'message').map(x => x.data).share();
+        var workerReady$ = workerEvent$.filter(x => x.type === 'ready');
+        var workerStart$ = workerEvent$.filter(x => x.type === 'start');
+        var workerStdout$ = workerEvent$.filter(x => x.type === 'stdout');
+        var workerDone$ = workerEvent$.filter(x => x.type === 'done');
+        var video$ = workerDone$.map(function (x) { console.log(x); return x.data[0]; });
         /* - INPUTS */
-        var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');
+        var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click').merge(Observable.timer(500, 400)).take(50);
 
         var exportClick$ = Observable.fromEvent(getEl('#btn-export'), 'click');
 
@@ -93,24 +104,73 @@
                 cxt.drawImage(video, 0, 0, w, h);
                 canvas.toBlob(function (blob) {
                     fulfill(blob);
-                });
+                }, 'image/jpeg', 0.7);
             }));
         }).scan(function (frames, blob) {
-            frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: blob });
+            console.log(frames.length);
+            if (blob) frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: new Uint8Array(blob) });
             return frames;
         }, []).share();
 
         var export$ = exportClick$.withLatestFrom(frames$).map(x => x[1]);
 
         /* SUBSCRIPTIONS */
-        frames$.subscribe(x => console.log(x));
+        // frames$.subscribe(x => console.log(x));
 
         workerReady$.subscribe(function (e) { console.log(e); });
 
-        frames$.subscribe(x => console.log(x.length));
+        //frames$.subscribe(x => console.log(x.length));
 
-        export$.subscribe(function (frames) { console.log(frames); });
+        export$.subscribe(function (frames) {
+          //  console.log(frames);
 
+            function load(url, callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.responseType = 'blob';
+                xhr.onload = function (e) {
+                    if (this.status == 200) {
+                        callback(this.response);
+                    }
+                };
+                xhr.send();
+            }
+
+            load('/test.mp4', function (e) {
+                var out = new Blob();
+                worker.postMessage({
+                    type: 'command',
+                    arguments: [
+                        '-i', '"image_%d.jpg"',
+                        '-f', 'image2',
+                        '-r', '24',
+                        '-c:v', 'mpeg4',
+                        //'-b:v', '600k',
+                        '-analyzeduration', '5000',
+                        '-probesize', '20000',
+                        '-strict', 'experimental', '-y',
+                        '"/output2.mp4"'
+                    ],
+                    files: ['/test.mp4', new Uint8Array(e)]
+                   // files: frames
+                });
+
+            });
+
+        });
+
+        /* WORKER */
+        workerReady$.subscribe(function () { });
+
+        workerStart$.subscribe(log);
+        workerEvent$.subscribe(log);
+
+        video$.subscribe(function (result) {
+            var blob;
+            if (result) blob = new Blob([result.data], { type: 'video/mp4' });
+        });
+
+        /* ****** */
 
 
 
@@ -134,14 +194,14 @@
             }
         }
 
-        
-        
+
+
 
         function UseImage(src) {
             document.getElementById('image').src = src;
         }
 
-      
+
         navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(useWebCamStream);
 
 
