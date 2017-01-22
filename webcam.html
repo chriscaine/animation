@@ -59,13 +59,32 @@
 
             </div>
             <div class="col-xs-7">
-                <canvas id="previewCanvas" width="640" height="480" style="background-color:#666; margin:auto; width:400px; height:300px;"></canvas>
-                <div class="alert alert-info" style="width:400px;" id="frame-count-display"></div>
-                <label class="label">Select framerate</label> <select  id="frame-rate" class="form-control"  style="width:400px;">
-                    <option value="6">6 fps</option>
-                    <option value="12">12 fps</option>
-                    <option value="24">24 fps</option>
-                </select>
+                <div style="position:relative; width: 400px; height:300px;">
+                    <div style="margin:auto; width:400px; height:300px; background: #e5e5e5; z-index:1; position:absolute; display:flex; flex-direction:column; border-radius:4px; align-items:center; justify-content:center;">
+                        <h1>How to use...</h1>
+                        <ol>
+                            <li>Agree to use webcam</li>
+                            <li>Line up you first frame with your webcam</li>
+                            <li>Press Capture Frame</li>
+                            <li>Your animation will be previewed here</li>
+                            <li>When it is complete press the Render Video button</li>
+                            <li>Your animation will play once and then your video will appear</li>
+                            <li>Click Save As to save your video to the computer</li>
+                        </ol>
+                    </div>
+                    <canvas id="previewCanvas" width="640" height="480" style="background-color:transparent; margin:auto; width:400px; height:300px; position:absolute; z-index:10;"></canvas>
+                </div>
+                <div class="alert alert-info" style="width:400px; margin-top:10px;" id="frame-count-display"></div>
+                <div class="row-fluid" style="width:400px">
+                    <div class=" col-xs-8">
+                        <label style="color:white; font-weight:100;">Select framerate</label> <select id="frame-rate" class="form-control" style="width:auto;display:inline;">
+                            <option value="6">6 fps</option>
+                            <option value="12">12 fps</option>
+                            <option value="24">24 fps</option>
+                        </select>
+                    </div>
+                    <button id="btn-undo" class="btn btn-danger col-xs-4" style="vertical-align:bottom;">Undo</button>
+                </div>
             </div>
         </div>
         <br /><br />
@@ -161,6 +180,8 @@
         var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');//.merge(Observable.timer(1000, 300)).take(50);
         // handle export requests
         var exportClick$ = Observable.fromEvent(getEl('#btn-export'), 'click');
+        // undo -> deletes last frame
+        var undoClick$ = Observable.fromEvent(getEl('#btn-undo'), 'click').filter(x => confirm('Are you sure you want to delete the last frame?'));
         // handle frame rate change requests
         var frameRate$ = Observable.fromEvent(getEl('#frame-rate'), 'change').map(x => parseInt(x.target.value)).startWith(6);
         // grab image from camera, turn to blob, and concatenate array in scan function
@@ -182,9 +203,17 @@
                     fulfill(blob);
                 }, 'image/jpeg', 0.7);
             }));
-        }).scan(function (frames, blob) {
-            document.querySelector('#image').src = URL.createObjectURL(blob);
-            if (blob) frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: blob });
+        }).merge(undoClick$.map(null)).scan(function (frames, blob) {
+            if (blob === null) {
+                // delete last frame
+                frames.pop();
+                // load new last frame into overlay image
+                if (frames.length > 0) document.querySelector('#image').src = URL.createObjectURL(frames[frames.length - 1].data);
+            } else {
+                // load frame into last frame overlay image
+                document.querySelector('#image').src = URL.createObjectURL(blob);
+                if (blob) frames.push({ name: format('image_{0}.jpg', [leadingZero(frames.length)]), data: blob });
+            }
             return frames;
         }, []).share(); // share() forces above to only happen once no matter haw many subscribers stream has
 
@@ -209,9 +238,9 @@
             });
             currentFrame$.onNext(0);
             singlePlay$.onNext(true);
-            
+
             recorder.startRecording();
-           
+
             var stop = false;
 
             setTimeout(() => recorder.stopRecording(function () {
