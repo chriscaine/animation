@@ -177,7 +177,7 @@
         var currentFrame$ = new Subject(); // set to frame to display zero index in array
         // handle clicks from the sutter
         // To Do: use merge to set-up to work as Time lapse function
-        var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');//.merge(Observable.timer(1000, 300)).take(50);
+        var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');//.merge(Observable.timer(1500, 300)).take(130);
         // handle export requests
         var exportClick$ = Observable.fromEvent(getEl('#btn-export'), 'click');
         // undo -> deletes last frame
@@ -229,11 +229,11 @@
 
         // on export button clicks send frame stream - map to duration in seconds frames count  / framerate
         var export$ = exportClick$.withLatestFrom(frames$, frameRate$).map(x => x[1].length / x[2]);
-
+        var animationEnd$ = new Subject();
         /* SUBSCRIPTIONS */
-
+        var recorder
         function exporting(duration) {
-            var recorder = RecordRTC(canvas, {
+            recorder  = RecordRTC(canvas, {
                 type: 'canvas'
             });
             currentFrame$.onNext(0);
@@ -243,13 +243,22 @@
 
             var stop = false;
 
-            setTimeout(() => recorder.stopRecording(function () {
+            //setTimeout(() => recorder.stopRecording(function () {
+            //    var blob = recorder.getBlob();
+            //    document.getElementById('output').src = URL.createObjectURL(blob);
+            //    document.getElementById('export-link').href = URL.createObjectURL(blob);
+            //    singlePlay$.onNext(null);
+            //}), duration * 1000);
+        }
+
+        animationEnd$.subscribe(function () {
+            recorder.stopRecording(function () {
                 var blob = recorder.getBlob();
                 document.getElementById('output').src = URL.createObjectURL(blob);
                 document.getElementById('export-link').href = URL.createObjectURL(blob);
                 singlePlay$.onNext(null);
-            }), duration * 1000);
-        }
+            });
+        });
 
         // Select the frame to draw and send to draw function
 
@@ -272,6 +281,8 @@
                     if (_frames[i]) {
                         draw(_frames[i], { index: i, length: _frames.length, exporting: 'Exporting', frameRate: _frameRate });
                         currentFrame$.onNext(obj.currentFrame + 1);
+                    } else {
+                        animationEnd$.onNext();
                     }
                 } else { // pause at start
                     if (_frames[0]) draw(_frames[0], { index: 1, length: _frames.length, exporting: 'Exporting', frameRate: _frameRate });
