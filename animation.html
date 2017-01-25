@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width">
+    <link href="css/bootstrap.css" rel="stylesheet" />
+    <style type="text/css">
+        body {
+            background-color: #222;
+        }
+
+        #monitor {
+            position: relative;
+            width: 400px;
+            height: 300px;
+            padding: 0;
+            margin: 0;
+        }
+
+            #monitor video {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 10;
+                opacity: 1;
+                transition: opacity .1s linear;
+            }
+
+                #monitor video:hover {
+                    opacity: .5;
+                }
+
+            #monitor img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 5;
+            }
+
+        #export-link[href^="#"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid" style="margin-top: 10px;">
+        <div class="row-fluid">
+            <div class="col-xs-5">
+                <div id="monitor" style="margin:auto;">
+                    <img id="image" width="400" height="300" />
+                    <video autoplay width="400" height="300" id="video"></video>
+                </div>
+                <div style="display:flex;  justify-content:space-around; margin-top:10px; height:100px;">
+                    <button class="btn btn-primary btn-lg" id="btn-shutter">Capture Frame</button>
+                    <button class="btn btn-default btn-lg" id="btn-export">Render Video</button>
+                </div>
+            </div>
+            <div class="col-xs-7">
+                <div style="position:relative; width: 400px; height:300px;">
+                    <div style="margin:auto; width:400px; height:300px; background: #e5e5e5; z-index:1; position:absolute; display:flex; flex-direction:column; border-radius:4px; align-items:center; justify-content:center;">
+                        <h1>How to use...</h1>
+                        <ol>
+                            <li>Agree to use webcam</li>
+                            <li>Line up you first frame with your webcam</li>
+                            <li>Press Capture Frame</li>
+                            <li>Your animation will be previewed here</li>
+                            <li>When it is complete press the Render Video button</li>
+                            <li>Your animation will play once and then your video will appear</li>
+                            <li>Click Save As to save your video to the computer</li>
+                        </ol>
+                    </div>
+                    <canvas id="previewCanvas" width="640" height="480" style="background-color:transparent; margin:auto; width:400px; height:300px; position:absolute; z-index:10;"></canvas>
+                </div>
+                <div class="alert alert-info" style="width:400px; margin-top:10px;" id="frame-count-display"></div>
+                <div class="row-fluid" style="width:400px">
+                    <div class=" col-xs-8">
+                        <label style="color:white; font-weight:100;">Select framerate</label> <select id="frame-rate" class="form-control" style="width:auto;display:inline;">
+                            <option value="6">6 fps</option>
+                            <option value="12">12 fps</option>
+                            <option value="24">24 fps</option>
+                        </select>
+                    </div>
+                    <button id="btn-undo" class="btn btn-danger col-xs-4" style="vertical-align:bottom;">Undo</button>
+                </div>
+            </div>
+        </div>
+        <br /><br />
+        <div class="row-fluid">
+            <div class="col-xs-8" style="text-align:center;">
+                <video id="output" controls="controls" width="400" height="300"></video>
+                <div class="col-xs-4">
+                    <a href="#" download="myAnimation.webm" id="export-link" class="btn btn-success btn-lg">Save As</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <ul id="messages"></ul>
+    <script src="scripts/RecordRTC.js"></script>
+    <script src="scripts/rx.lite.min.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html>
