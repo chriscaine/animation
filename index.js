@@ -15,8 +15,10 @@ const serveStatic = require('serve-static');
 
 const fs = require('fs');
 
-const IMAGE_FOLDER = 'c:\\Global\\animation-frames\\';
-const MEDIA_FOLDER = 'public/media';
+var Config = require('./Config.js'); 
+
+const IMAGE_FOLDER = Config.ImagesFolder;
+const MEDIA_FOLDER = Config.MediaFolder;
 
 const File = require("./file.js");
 
