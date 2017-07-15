@@ -6,6 +6,7 @@ const Observable = require("rxjs/Rx").Observable;
 const Subject = require("rxjs/Rx").Subject;
 const File = require("./File.js");
 const Utilities = require('./Utilities.js');
+const Config = require('./Config.js');
 
 function GetFolder([folder, parent]) {
     return Observable.create(function (observe) {
@@ -46,8 +47,8 @@ module.exports = function App(io, socket, watchFolder$, imageFolder$, watchMedia
     // .map(x => x[1] + x[0]);
 
     const _render = function (data) {
-        var file = Utilities.Bind('c:\\Global\\animation-frames\\{{Parent}}\\',data);
-        var outputFile = Utilities.Bind('public/media/{{Parent}}-{{Fps}}fps.mp4', data);
+        var file = Utilities.Format('{0}{1}\\',[Config.ImagesFolder, data.Parent]);
+        var outputFile = Utilities.Format('{0}/{1}-{2}fps.mp4', [Config.MediaFolder, data.Parent, data.Fps]);
         console.log(data, file, outputFile);
         ffmpeg(file + 'DSC_%04d.jpg')
             .outputOptions(['-pix_fmt yuv420p', '-g 1', '-preset ultrafast', '-crf 0'])
@@ -57,7 +58,7 @@ module.exports = function App(io, socket, watchFolder$, imageFolder$, watchMedia
             .inputFPS(parseInt(data.Fps))
             .on('codecData', x => _io.emit('render', { type: Render.CodecData, data: x }))
             .on('error', x => _io.emit('render', { type: Render.Error, data: x }))
-            .on('progress', x => _io.emit('render', { type: Render.Progress, data: x }))
+            .on('progress', x => _io.emit('render', { type: Render.Progress, data: x }))    
             .on('end', x => _io.emit('render', { type: Render.End, data: x }))
             .on('start', x => _io.emit('render', { type: Render.Start, data: x }))
             .output(outputFile)

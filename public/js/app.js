@@ -8,6 +8,13 @@ const Socket = {
     MediaList: 'media:list',
     Render: 'render:start'
 }
+var Render = {
+    Start: 'start',
+    Progress: 'progress',
+    Error: 'error',
+    CodecData: 'codec-data',
+    End: 'end'
+}
 var socket = io.connect(location.origin);
 
 // load webservice
@@ -87,6 +94,13 @@ var undoClick$ = Observable.fromEvent(getEl('#btn-undo'), 'click').filter(x => c
 var frameRate$ = Observable.fromEvent(getEl('#frame-rate'), 'change').map(x => parseInt(x.target.value)).startWith(6);
 // grab image from camera, turn to blob, and concatenate array in scan function
 
+var renderFeedback$ = Observable.create(function (observer) {
+    socket.on('render', function (e) {
+        console.log(e);
+        observer.onNext(e);
+    });
+});
+
 var framesListFromServer$ = Observable.create(function (observe) {
     socket.on(Socket.ImageList, function (list) {
         observe.onNext(list);
@@ -113,10 +127,25 @@ var framesFromServer$ = framesListFromServer$.flatMap(fetchImage);
 var frames$ = Observable.merge(framesListFromServer$.map(x => null), framesFromServer$).scan(function (arr, item) {
     if (item === null) { arr = []; }
     else { arr.push(item); }
-    console.log(item, arr.length);
 
     return arr;
 }, []).share();
+
+
+
+renderFeedback$.filter(x => x.type === Render.Progress)
+    .map(x => x.data.frames)
+    .withLatestFrom(frames$.map(x => x.length))
+    .subscribe(x => {
+        document.getElementById('progress-bar').style.opacity = 1;
+        var perc = Math.round(100 * x[0] / x[1]);
+        document.getElementById('progress').style.width = Utilities.Format('{0}%', [perc.toString()]);
+        if (perc === 100) {
+            setTimeout(function () {
+                document.getElementById('progress-bar').style.opacity = 0;
+            }, 3000);
+        }
+    });
 
 /**
  * Get latest list
@@ -210,7 +239,7 @@ app.controller('AppController', function ($scope, $timeout) {
     }
 
     $scope.playVideo = function (url) {
-        $scope.src =  url.replace('public/', '');
+        $scope.src = url.replace('public/', '');
     }
 
 
