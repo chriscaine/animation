@@ -1,0 +1,112 @@
+﻿<!doctype html>
+<html ng-app="app">
+<head>
+    <title>Socket.IO Position</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <meta name="viewport" value="width=device-width;initial-scale=1" />
+    <style type="text/css">
+        body {
+            background-color: #222;
+        }
+
+        #monitor {
+            position: relative;
+            width: 400px;
+            height: 300px;
+            padding: 0;
+            margin: 0;
+        }
+
+            #monitor video {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 10;
+                opacity: 1;
+                transition: opacity .1s linear;
+            }
+
+                #monitor video:hover {
+                    opacity: .5;
+                }
+
+            #monitor img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 5;
+            }
+
+        #export-link[href^="#"] {
+            display: none;
+        }
+    </style>
+
+</head>
+<body class="" style=""  ng-controller="AppController">
+
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xs-2" style="background:#e5e5e5;">
+                <h2>Folders</h2>
+                <div>
+                    <div ng-repeat="f in folderList"><button class="btn btn-link" ng-click="selectFolder(f)"><i ng-class="{ glyphicon : true,  'glyphicon-folder-close' : f !== selectedFolder, 'glyphicon-folder-open' : f === selectedFolder}"></i>   {{f.Name }}</button></div>
+                </div>
+                <h2>Media</h2>
+                <ul>
+                    <li ng-repeat="i in mediaList"><a ng-href="{{cleanUrl(i.FullName)}}" download="{{i.Name}}">{{i.Name}}</a><button class="hide btn btn-xs btn-success" ng-click="playVideo(i.FullName)"><i class="glyphicon glyphicon-play"></i> Play</button></li>
+                </ul>
+
+            </div>
+            
+            <div class="col-xs-10">
+                <div class="alert alert-info" style="width:400px; margin-top:10px;" id="frame-count-display"></div>
+                <div class="row-fluid" style="width:400px">
+                    <div class=" col-xs-8">
+                        <label style="color:white; font-weight:100;">Select framerate</label> <select id="frame-rate" class="form-control" style="width:auto;display:inline;">
+                            <option value="6">6 fps</option>
+                            <option value="12">12 fps</option>
+                            <option value="24">24 fps</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="hide btn btn-primary" id="btn-shutter">Capture Frame</button>
+                        <button class="btn btn-default" id="btn-export">Render Video</button>
+                    </div>
+                    <button id="btn-undo" class="hide btn btn-danger col-xs-4" style="vertical-align:bottom;">Undo</button>
+                </div>
+
+                <div ng-if="src != null">
+                    <video width="400" height="270">
+                        <source src="{{src}}" type="video/mp4" />
+                    </video>
+                </div>
+
+                <div style="position:relative; width: 400px; height:300px;">
+                    <canvas id="previewCanvas" width="640" height="480" style="background-color:transparent; margin:auto; z-index:10;"></canvas>
+                </div>
+
+
+            </div>
+        </div>
+
+    </div>
+  
+
+
+
+    <script src="js/lib/jquery-1.7.1.min.js"></script>
+    <script src="js/lib/angular-1-1-5.min.js"></script>
+    <script src="js/lib/rx.all.min.js"></script>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="js/Utilities.js"></script>
+    <script src="js/app.js"></script>
+
+
+
+    <script type="text/template">
+        <li><button class="btn btn-link"></button></li>
+    </script>
+</body>
+</html>
