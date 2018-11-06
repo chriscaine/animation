@@ -47,6 +47,7 @@ Temporary Items
 .apdisk
 .vs/slnx.sqlite
 *.sqlite
-node_modules
-data/config.json
-public/media
+node_modules/
+data/
+public/media/
+sessions/
