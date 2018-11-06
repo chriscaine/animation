@@ -47,14 +47,19 @@ module.exports = function App(io, socket, watchFolder$, imageFolder$, watchMedia
     // .map(x => x[1] + x[0]);
 
     const _render = function (data) {
-        var file = Utilities.Format('{0}{1}\\',[Config.ImagesFolder, data.Parent]);
-        var outputFile = Utilities.Format('{0}/{1}-{2}fps.mp4', [Config.MediaFolder, data.Parent, data.Fps]);
-        console.log(data, file, outputFile);
-        ffmpeg(file + 'DSC_%04d.jpg')
+        var outputFile = Utilities.Format('{0}/{1}-{2}fps{3}.mp4', [Config.MediaFolder, data.Parent, data.Fps, data.ConvertToHD ? '-HD' : '']);
+        console.log(data);
+
+        var videoFilters = [];
+        if (data.ConvertToHD) videoFilters.push('crop=3456:1944:0:180'); 
+
+        ffmpeg(data.ImageFolder + data.FileFormat)
+            .inputOptions(['-start_number ' + data.FirstFrame])
             .outputOptions(['-pix_fmt yuv420p', '-g 1', '-preset ultrafast', '-crf 0'])
-            .videoBitrate('8192k')
+            .videoFilters(videoFilters)
+            .videoBitrate('16384k')
             .videoCodec('mpeg4')
-            .size('?x1080')
+            .size(data.ConvertToHD ? '1920x1080' : '3456x2304')
             .inputFPS(parseInt(data.Fps))
             .on('codecData', x => _io.emit('render', { type: Render.CodecData, data: x }))
             .on('error', x => _io.emit('render', { type: Render.Error, data: x }))
@@ -69,7 +74,17 @@ module.exports = function App(io, socket, watchFolder$, imageFolder$, watchMedia
         .filter(x => x.type === Socket.Render)
         .withLatestFrom(selectedImageFolder$)
         .filter(x => x[1][0].length > 0)
-        .map(x => { return { Fps: x[0].data.fps, Parent: x[1][0] } })
+        .map(x => { return { Fps: x[0].data.fps, ConvertToHD: x[0].data.convertToHD, Parent: x[1][0] } })
+        .map(x => {
+            return Observable.create(function (observe) {
+                x.ImageFolder = Utilities.Format('{0}{1}\\', [Config.ImagesFolder, x.Parent]);
+                fs.readdir(x.ImageFolder, function (err, files) {
+                    x.FirstFrame = /([0-9]{1,5})\./.exec(files[0])[1];
+                    x.FileFormat = files[0].replace(x.FirstFrame, '%04d');
+                    observe.next(x);
+                });
+            });
+        }).switch()
         .subscribe(_render);
 
     const _watchFolder$ = watchFolder$;
