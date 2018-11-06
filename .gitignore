@@ -45,3 +45,8 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+.vs/slnx.sqlite
+*.sqlite
+node_modules
+data/config.json
+public/media
