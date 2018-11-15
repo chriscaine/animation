@@ -14,11 +14,12 @@ const io = require('socket.io')(http);
 const serveStatic = require('serve-static');
 
 const fs = require('fs');
-
+const FlashAir = require('./FlashAir');
 var Config = require('./Config.js'); 
 
 const IMAGE_FOLDER = Config.ImagesFolder;
 const MEDIA_FOLDER = Config.MediaFolder;
+
 
 const File = require("./file.js");
 
@@ -46,6 +47,7 @@ io.on('connection', function (socket) {
 });
 
 
+var flashAir = new FlashAir();
 
 /*
     On connection
