@@ -30,6 +30,7 @@ var FlashAir = function() {
         var _this = this;
         if (this.isImage) {
             getThumb(this.path, function(data) {
+                console.log(typeof data);
                 _this.thumbnail = data;
             });
         }
