@@ -47,7 +47,7 @@ io.on('connection', function (socket) {
 });
 
 
-var flashAir = new FlashAir();
+//var flashAir = new FlashAir();
 
 /*
     On connection

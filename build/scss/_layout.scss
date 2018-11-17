@@ -1,0 +1,47 @@
+﻿
+body,html{padding:0;margin:0;height:100%;}
+.grid {
+    display:grid;
+    grid-template-columns: repeat(16, 6.25vw);
+    grid-template-rows: repeat(15, 3.125vw) 1fr;
+    height:100%;
+}
+
+.left-bar {
+    grid-column: 1/span 4;
+    grid-row:1/span 16;
+}
+
+.mid-bar {
+    grid-column: 5/span 4;
+    grid-row: 1/span 16;
+}
+
+.monitor {
+    grid-column: 9/span 8;
+    grid-row: 1/span 9;
+}
+
+.controls {
+    grid-column: 9/span 8;
+    grid-row:10/span 2;
+}
+
+.exports {
+    grid-column: 9/span 8;
+    grid-row: 12/span 5;
+    background-color:#e5e5e5;
+}
+
+.black {
+    background-color: #000;
+}
+
+.dark-grey{
+    background-color:#333;
+   
+
+}
+.light-grey{
+    background-color:#666;
+}

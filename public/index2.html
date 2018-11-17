@@ -3,8 +3,34 @@
 <head>
     <link rel="stylesheet" href="css/site.css" />
 </head>
-<body>
-
+<body ng-controller="AppController">
+    <div class="grid">
+        <section class="left-bar dark-grey list">
+            <h3>Select Project <button class="icon-btn pull-right" title="add a new project"><span class="icon">add</span> Add</button></h3>
+            <ul class=""><li ng-repeat="item in [{id:1}]">
+                 <button  ng-click="load(item)" name="load-project">Project</button></li></ul>
+        </section>
+        <section class="mid-bar light-grey"></section>
+        <section class="monitor black">
+            <canvas  id="canvas"></canvas>
+        </section>
+        <section class="controls dark-grey">
+            <div>
+                <select ng-model="fps" name="fps"><option>6fps</option><option>12fps</option><option>24fps</option></select>
+                <button ng-click="rewind()" name="to-start" type="button" class="icon-btn"><i class="icon">skip_previous</i></button>
+                <button ng-click="stop()" name="stop" type="button" class="icon-btn"><i class="icon">stop</i></button>
+                <button ng-click="pause()" name="pause" type="button" class="icon-btn"><i class="icon">pause</i></button>
+                <button  ng-click="play()" name="play" type="button" class="icon-btn"><i class="icon">play_arrow</i></button>
+                <button  ng-click="foward()" name="to-end" type="button" class="icon-btn"><i class="icon">skip_next</i></button>
+            </div>
+            <div>
+                <input type="range" />
+            </div>
+        </section>
+        <section class="exports light-grey">
+            <button ng-click="export()" name="export"></button>
+        </section>
+    </div>
 
 
 

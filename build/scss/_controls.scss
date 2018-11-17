@@ -1,0 +1,76 @@
+﻿.controls {
+    text-align: right;
+    $height: 3.125vw;
+
+    button {
+        color: #aaa;
+        font-size: 1.2rem;
+        height: $height;
+        vertical-align: middle;
+        line-height: $height;
+        width: 2em;
+        cursor: pointer;
+        text-align: center;
+
+        &:focus {
+            outline: none;
+            border: solid 1px #aaa;
+            color: #fff;
+        }
+
+        &:hover {
+        }
+    }
+
+    select {
+        float: left;
+        color: #aaa;
+        font-size: 1.2rem;
+        height: $height;
+        vertical-align: middle;
+        line-height: $height;
+        background-color: transparent;
+        width: 5em;
+        border: none;
+        padding: 0 1em;
+        letter-spacing: .15em;
+
+        &:focus {
+            outline: none;
+            border: solid 1px #aaa;
+            color: #fff;
+        }
+
+        &:hover {
+        }
+
+        option {
+            color: #333;
+        }
+    }
+
+    input[type="range"] {
+        width: 100%;
+        height: $height;
+        line-height: $height;
+        vertical-align: middle;
+
+
+        &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+
+        &:focus {
+            outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+        }
+
+        &::-ms-track {
+            width: 100%;
+            cursor: pointer;
+            /* Hides the slider so custom styles can be added */
+            background: transparent;
+            border-color: transparent;
+            color: transparent;
+        }
+    }
+}

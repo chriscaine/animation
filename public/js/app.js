@@ -4,8 +4,10 @@
 
 angular.module('app').config(function () { });
 
-angular.module('app').run(function () { });
-﻿angular.module('core').factory('CookieService', function (user) {
+angular.module('app').run(function () {
+    
+});
+﻿angular.module('app').factory('CookieService', function (user) {
     // utilities to encode and decode the stored object as base64
     // stops objects being human readable.
     var Base64 = {
@@ -205,6 +207,15 @@ angular.module('app').run(function () { });
         },
         CookieSwitch: CookieSwitch
     }
+});
+﻿angular.module('app').factory('EventService', function (rx) {
+
+    var Events = function () {
+       
+        return this;
+    }
+
+    return Events;
 });
 
     var Helpers = {};
@@ -754,6 +765,32 @@ var Utilities = {
     }
 }
 
-﻿angular.module('app').controller('AppController', function ($scope) {
+﻿angular.module('app').controller('AppController', function ($scope, observeOnScope) {
+    function log() {
+        console.log(arguments);
+    }
+    /*
+     watch fps
+     load()
+     rewind()
+     stop()
+     pause()
+     play()
+     forward()
+     export()
+     */
 
+
+    var load$ = $scope.$createObservableFunction('load');
+    var rewind$ = $scope.$createObservableFunction('rewind');
+    var stop$ = $scope.$createObservableFunction('stop');
+    var pause$ = $scope.$createObservableFunction('pause');
+    var play$ = $scope.$createObservableFunction('play');
+    var forward$ = $scope.$createObservableFunction('forward');
+    var export$ = $scope.$createObservableFunction('export');
+
+    var fps$ = observeOnScope($scope, 'fps');
+
+    load$.subscribe(log);
+    fps$.subscribe(log);
 });

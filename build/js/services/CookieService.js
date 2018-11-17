@@ -1,4 +1,4 @@
-﻿angular.module('core').factory('CookieService', function (user) {
+﻿angular.module('app').factory('CookieService', function (user) {
     // utilities to encode and decode the stored object as base64
     // stops objects being human readable.
     var Base64 = {
