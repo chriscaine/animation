@@ -510,5 +510,13 @@
     String.prototype.endsWith = function (x, caseSensitive) {
         return (new RegExp(x + '$', caseSensitive === true ? '' : 'i')).test(this.valueOf());
     };
-    
-//angular.module('app').factory('Helpers', () => Helpers);
+try {
+        angular.module('app').factory('Helpers', () => Helpers);
+} catch (e) {
+
+}
+try {
+    module.exports = Helpers;
+} catch (e) {
+
+}   

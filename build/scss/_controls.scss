@@ -1,7 +1,8 @@
 ﻿.controls {
     text-align: right;
     $height: 3.125vw;
-
+    padding: 0;
+    > div:nth-of-type(1){ margin-right:1em;}
     button {
         color: #aaa;
         font-size: 1.2rem;
@@ -23,6 +24,7 @@
     }
 
     select {
+        display:block;
         float: left;
         color: #aaa;
         font-size: 1.2rem;
@@ -30,7 +32,7 @@
         vertical-align: middle;
         line-height: $height;
         background-color: transparent;
-        width: 5em;
+        width:7em;
         border: none;
         padding: 0 1em;
         letter-spacing: .15em;

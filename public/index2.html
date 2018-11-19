@@ -6,29 +6,34 @@
 <body ng-controller="AppController">
     <div class="grid">
         <section class="left-bar dark-grey list">
-            <h3>Select Project <button class="icon-btn pull-right" title="add a new project"><span class="icon">add</span> Add</button></h3>
-            <ul class=""><li ng-repeat="item in [{id:1}]">
-                 <button  ng-click="load(item)" name="load-project">Project</button></li></ul>
+            <h3>Select Project <button ng-click="add()" class="icon-btn pull-right" title="add a new project"><span class="icon">add</span> Add</button></h3>
+            <ul class="">
+                <li ng-repeat="item in projects$ | async : this">
+                    <button ng-click="selectProject(item._id)" name="load-project">Project {{item.name}}</button>
+                </li>
+            </ul>
         </section>
-        <section class="mid-bar light-grey"></section>
+        <section class="mid-bar light-grey list">
+            <h3></h3>
+        </section>
         <section class="monitor black">
-            <canvas  id="canvas"></canvas>
+            <canvas id="canvas"></canvas>
         </section>
         <section class="controls dark-grey">
             <div>
-                <select ng-model="fps" name="fps"><option>6fps</option><option>12fps</option><option>24fps</option></select>
+                <select ng-model="fps" name="fps"><option ng-value="6">6fps</option><option ng-value="12">12fps</option><option ng-value="24">24fps</option></select>
                 <button ng-click="rewind()" name="to-start" type="button" class="icon-btn"><i class="icon">skip_previous</i></button>
                 <button ng-click="stop()" name="stop" type="button" class="icon-btn"><i class="icon">stop</i></button>
                 <button ng-click="pause()" name="pause" type="button" class="icon-btn"><i class="icon">pause</i></button>
-                <button  ng-click="play()" name="play" type="button" class="icon-btn"><i class="icon">play_arrow</i></button>
-                <button  ng-click="foward()" name="to-end" type="button" class="icon-btn"><i class="icon">skip_next</i></button>
+                <button ng-click="play()" name="play" type="button" class="icon-btn"><i class="icon">play_arrow</i></button>
+                <button ng-click="foward()" name="to-end" type="button" class="icon-btn"><i class="icon">skip_next</i></button>
             </div>
             <div>
-                <input type="range" />
+                <input type="range" min="0" step="1" max="{{noOfFrames$ | async : this}}" ng-model="range" />
             </div>
         </section>
         <section class="exports light-grey">
-            <button ng-click="export()" name="export"></button>
+            <button ng-click="export()" name="export" class="btn">Create Video</button>
         </section>
     </div>
 
@@ -36,6 +41,7 @@
 
     <script src="js/lib/jquery-1.7.1.min.js"></script>
     <script src="js/lib/rx.all.min.js"></script>
+    <script src="socket.io/socket.io.js"></script>
     <script src="js/lib/angular.min.js"></script>
     <script src="js/lib/rx.angular.min.js"></script>
     <script src="js/app.js"></script>

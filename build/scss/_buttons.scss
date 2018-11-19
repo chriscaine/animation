@@ -6,4 +6,15 @@
     line-height: inherit;
     vertical-align: inherit;
 }
+$buttonColor: #0094ff ;
+button.btn {
+    border: solid 1px $buttonColor;
+    background-color: $buttonColor;
+    color: white;
+    text-transform: uppercase;
+    padding: 10px;
 
+    &:hover {
+        background-color: lighten($buttonColor, 10%);
+    }
+}

@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-const Watch = require("node-watch");
+//const Watch = require("node-watch");
 
 const App = require("./App.js");
 
@@ -25,29 +25,31 @@ const File = require("./file.js");
 
 express.use(Express.static('public'));
 
-express.use('/images', serveStatic(IMAGE_FOLDER));
+//express.use('/images', serveStatic(IMAGE_FOLDER));
 
 http.listen(8080);
 
 
-var folderChanges$ = Observable.create(function (observer) {
-    Watch(IMAGE_FOLDER, { recursive: true }, function (evt, filename) {
-        observer.next({ type: evt, file: new File(filename) });
-    });
+//var folderChanges$ = Observable.create(function (observer) {
+//    Watch(IMAGE_FOLDER, { recursive: true }, function (evt, filename) {
+//        observer.next({ type: evt, file: new File(filename) });
+//    });
+//});
+
+//var mediaFolderChanges$ = Observable.create(function (observer) {
+//    Watch(MEDIA_FOLDER, { recursive: true }, function (evt, filename) {
+//        observer.next(MEDIA_FOLDER);
+//    });
+//}).startWith(MEDIA_FOLDER);
+
+var flashAir = new FlashAir();
+
+io.on('connection', function (socket) { 
+    new App(io, socket, flashAir.input$);
 });
 
-var mediaFolderChanges$ = Observable.create(function (observer) {
-    Watch(MEDIA_FOLDER, { recursive: true }, function (evt, filename) {
-        observer.next(MEDIA_FOLDER);
-    });
-}).startWith(MEDIA_FOLDER);
-
-io.on('connection', function (socket) {
-    new App(io, socket, folderChanges$, Observable.from([IMAGE_FOLDER]), mediaFolderChanges$);
-});
 
 
-//var flashAir = new FlashAir();
 
 /*
     On connection

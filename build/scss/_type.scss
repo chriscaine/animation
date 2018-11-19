@@ -1,9 +1,11 @@
 ﻿@import 'https://fonts.googleapis.com/icon?family=Material+Icons';
 @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,900');
 
+
 :root {
     font-family: 'Source Sans Pro', sans-serif;
     font-size:14px;
+    user-select:none;
 }
 .icon {
     font-family: 'Material Icons';

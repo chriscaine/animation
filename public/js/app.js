@@ -7,6 +7,62 @@ angular.module('app').config(function () { });
 angular.module('app').run(function () {
     
 });
+﻿angular.module('app').filter('async', function () {
+    const values = {};
+    const subscriptions = {};
+
+    function async(input, scope) {
+        // Make sure we have an Observable or a Promise
+        if (!input || !(input.subscribe || input.then)) {
+            return input;
+        }
+
+        const inputId = objectId(input);
+        if (!(inputId in subscriptions)) {
+            const subscriptionStrategy = input.subscribe && input.subscribe.bind(input)
+                || input.success && input.success.bind(input) // To make it work with HttpPromise
+                || input.then.bind(input);
+
+            subscriptions[inputId] = subscriptionStrategy(value => {
+                values[inputId] = value;
+
+                if (scope && scope.$applyAsync) {
+                    scope.$applyAsync(); // Automatic safe apply, if scope provided
+                }
+            });
+
+            if (scope && scope.$on) {
+                // Clean up subscription and its last value when the scope is destroyed.
+                scope.$on('$destroy', () => {
+                    const sub = subscriptions[inputId];
+                    if (sub) {
+                        sub.unsubscribe && sub.unsubscribe();
+                        sub.dispose && sub.dispose();
+                    }
+                    delete subscriptions[inputId];
+                    delete values[inputId];
+                });
+            }
+        }
+
+        return values[inputId];
+    };
+
+    // Need a way to tell the input objects apart from each other (so we only subscribe to them once)
+    let nextObjectID = 0;
+    function objectId(obj) {
+        if (!obj.hasOwnProperty('__asyncFilterObjectID__')) {
+            obj.__asyncFilterObjectID__ = ++nextObjectID;
+        }
+
+        return obj.__asyncFilterObjectID__;
+    }
+
+    // So that Angular does not cache the return value
+    async.$stateful = true;
+
+    return async;
+});
 ﻿angular.module('app').factory('CookieService', function (user) {
     // utilities to encode and decode the stored object as base64
     // stops objects being human readable.
@@ -729,8 +785,17 @@ angular.module('app').run(function () {
     String.prototype.endsWith = function (x, caseSensitive) {
         return (new RegExp(x + '$', caseSensitive === true ? '' : 'i')).test(this.valueOf());
     };
-    
-//angular.module('app').factory('Helpers', () => Helpers);
+try {
+        angular.module('app').factory('Helpers', () => Helpers);
+} catch (e) {
+
+}
+try {
+    module.exports = Helpers;
+} catch (e) {
+
+}   
+
 ﻿
 var Utilities = {
     ByTag: function ByTag(tag) {
@@ -765,23 +830,24 @@ var Utilities = {
     }
 }
 
-﻿angular.module('app').controller('AppController', function ($scope, observeOnScope) {
+﻿angular.module('app').controller('AppController', function ($scope, $timeout, observeOnScope, rx, Socket, Render) {
+    var socket = io.connect(location.origin);
     function log() {
-        console.log(arguments);
+        console.log(arguments[0]);
     }
-    /*
-     watch fps
-     load()
-     rewind()
-     stop()
-     pause()
-     play()
-     forward()
-     export()
-     */
+    var Observable = rx.Observable;
+    var Subject = rx.Subject;
+
+    function listenSocketEvt(evtName) {
+        return Observable.create(function (observe) {
+            socket.on(evtName, e => observe.onNext(e));
+        });
+    }
 
 
-    var load$ = $scope.$createObservableFunction('load');
+    
+    var add$ = $scope.$createObservableFunction('add').map(() => prompt('Enter name for animation')).filter(x => x !== null);
+    var selectProject$ = $scope.$createObservableFunction('selectProject');
     var rewind$ = $scope.$createObservableFunction('rewind');
     var stop$ = $scope.$createObservableFunction('stop');
     var pause$ = $scope.$createObservableFunction('pause');
@@ -789,8 +855,48 @@ var Utilities = {
     var forward$ = $scope.$createObservableFunction('forward');
     var export$ = $scope.$createObservableFunction('export');
 
-    var fps$ = observeOnScope($scope, 'fps');
+    var fps$ = observeOnScope($scope, 'fps').map(x => x.newValue).filter(x => x !== undefined);
+    var range$ = observeOnScope($scope, 'range').map(x => x.newValue).filter(x => x !== undefined);
 
-    load$.subscribe(log);
+    add$.subscribe(function (name) {
+        socket.emit(Socket.NewProject, { name: name });
+    });
+    selectProject$.subscribe(function (id) {
+        socket.emit(Socket.ProjectSelect, { _id: id });
+    });
+    var project$ = listenSocketEvt(Socket.LoadingProject);
+    // listen for project coming back from server
+    project$.subscribe(log);
+    
     fps$.subscribe(log);
+    range$.subscribe(log);
+
+    $scope.range = 0;
+    $scope.fps = 12;
+
+    $scope.projects$ = listenSocketEvt(Socket.ProjectList).do(log);
+    $scope.noOfFrames$ = Observable.just(24 - 1);// this will be 1000 / noOFFrames
+
+    $timeout(function () {
+        socket.emit(Socket.LoadProjects);
+    }, 1000);
+});
+
+﻿angular.module('app').value('Render', {
+    Start: 'start',
+    Progress: 'progress',
+    Error: 'error',
+    CodecData: 'codec-data',
+    End: 'end'
+});
+﻿angular.module('app').value('Socket', {
+    ProjectList: 'project:list',
+    ProjectSelect: 'project:selected',
+    ImageList: 'image:list',
+    MediaList: 'media:list',
+    Render: 'render:start',
+    NewImage: 'image:add',
+    NewProject: 'project:add',
+    LoadingProject: 'project:load',
+    LoadProjects: 'project:load:list'
 });
