@@ -7,5 +7,6 @@
     NewImage: 'image:add',
     NewProject: 'project:add',
     LoadingProject: 'project:load',
-    LoadProjects: 'project:load:list'
+    LoadProjects: 'project:load:list',
+    CameraStatus: 'camera:status'
 });

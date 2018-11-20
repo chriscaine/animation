@@ -4,27 +4,34 @@ const Observable = require("rxjs/Rx").Observable;
 const Subject = require("rxjs/Rx").Subject;
 const request = require('request');
 
+const Config = require('./Config.js');
+const FLASH_AIR_HOST = Config.FlashAirHost;
+const DEFAULT_IMAGE_FOLDER = Config.DefaultImageFolder;
+
+
 var rxRequest = {
     get: function (uri, settings) {
-        settings.uri = uri;
+        settings.uri = FLASH_AIR_HOST + uri;
         settings.method = 'GET';
-        return Observable.create(obs => request(settings, (err, res, data) => obs.next(data)));
+        return Observable.create(obs => request(settings, (err, res, data) => {
+            obs.next({
+                err: err,
+                res: res,
+                data: data
+            });
+        }));
     }
 }
 
-const Config = require('./Config.js');
 
 var FlashAir = function () {
     var _input$ = new Subject();
     this.input$ = _input$;
-
-    const FLASH_AIR_HOST = Config.FlashAirHost;
-    const DEFAULT_IMAGE_FOLDER = Config.DefaultImageFolder;
-
+  
     function getThumb(path) {
         var arr = [FLASH_AIR_HOST, 'thumbnail.cgi?', path];
         var commandText = arr.join('');
-        return rxRequest.get(commandText, { encoding: null });
+        return rxRequest.get(commandText, { encoding: null }).map(x => x.data);
     }
 
     var ImageFile = function (arr) {
@@ -43,8 +50,8 @@ var FlashAir = function () {
                 _this.thumbnail = data;
                 return _this;
         });
-        var image$ = rxRequest.get([FLASH_AIR_HOST, this.path].join(''), { encoding: null }).map(data => {
-            _this.image = data;
+        var image$ = rxRequest.get([FLASH_AIR_HOST, this.path].join(''), { encoding: null }).map(obj => {
+            _this.image = obj.data;
             return _this;
         });
         return Observable.zip(image$, thumb$).mapTo(_this);
@@ -58,26 +65,43 @@ var FlashAir = function () {
         return lines.filter(x => x).map(x => new ImageFile(x.split(','))).filter(x => x.isImage === true);
     }
 
-    function command(obj) {
-        var arr = [FLASH_AIR_HOST, 'command.cgi?'];
-        arr.push(Object.keys(obj).map(x => x + '=' + obj[x]).join('&'));
-        var commandText = arr.join('');
-        return rxRequest.get(commandText, { json: false }).map(convertCSV);
+    var dirCommandText = ['command.cgi?op=100&DIR=', DEFAULT_IMAGE_FOLDER].join('');
 
+    function getDir() {
+        return rxRequest.get(dirCommandText, { json: false }).map(x => x.err ? null : x.data).map(convertCSV);
     }
-    var command$ = Observable.interval(1000).flatMap(() => command({ op: 100, DIR: DEFAULT_IMAGE_FOLDER }));
+
+    function mapPing(x) {
+        if (x.err === null) {
+            if (x.res.statusCode === 200) {
+                return parseInt(x.data);
+            }
+        }
+        return -1;
+    }
+
+    function ping() {
+        return rxRequest.get('command.cgi?op=102', { json: false, timeout:2450 }).map(mapPing);
+    }
+
+    //command({ op: 100, DIR: DEFAULT_IMAGE_FOLDER })
+    this.status$ = Observable.interval(1000).flatMap(ping).share();//.filter(x => x === 1);
+    //status$.subscribe((status) => { console.log('status', status, new Date().getTime()); });
+
     var currentList = [];
 
     var firstRun = true;
+    var command$ = this.status$.filter(x => x === 1 || (firstRun === true && x > -1)).flatMap(getDir)
+
     command$.subscribe(function (data) {
         if (data === null) return;
-        console.log('check: ', data.length);
+      //  console.log('check: ', data.length);
         var newItems = [];
         if (!firstRun) {
             data.forEach(function (item) {
                 if (currentList.indexOf(item.fileName) === -1) newItems.push(item);
             });
-        }
+         }
 
         currentList = data.map(f => f.fileName);
 

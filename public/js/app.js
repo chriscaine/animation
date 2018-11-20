@@ -844,8 +844,6 @@ var Utilities = {
         });
     }
 
-
-    
     var add$ = $scope.$createObservableFunction('add').map(() => prompt('Enter name for animation')).filter(x => x !== null);
     var selectProject$ = $scope.$createObservableFunction('selectProject');
     var rewind$ = $scope.$createObservableFunction('rewind');
@@ -864,6 +862,9 @@ var Utilities = {
     selectProject$.subscribe(function (id) {
         socket.emit(Socket.ProjectSelect, { _id: id });
     });
+
+    $scope.cameraStatus$ = listenSocketEvt(Socket.CameraStatus);
+
     var project$ = listenSocketEvt(Socket.LoadingProject);
     // listen for project coming back from server
     project$.subscribe(log);
@@ -898,5 +899,6 @@ var Utilities = {
     NewImage: 'image:add',
     NewProject: 'project:add',
     LoadingProject: 'project:load',
-    LoadProjects: 'project:load:list'
+    LoadProjects: 'project:load:list',
+    CameraStatus: 'camera:status'
 });

@@ -45,7 +45,7 @@ http.listen(8080);
 var flashAir = new FlashAir();
 
 io.on('connection', function (socket) { 
-    new App(io, socket, flashAir.input$);
+    new App(io, socket, flashAir);
 });
 
 

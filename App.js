@@ -15,7 +15,8 @@ const Socket = {
     NewImage: 'image:add',
     NewProject: 'project:add',
     LoadingProject: 'project:load',
-    LoadProjects: 'project:load:list'
+    LoadProjects: 'project:load:list',
+    CameraStatus: 'camera:status'
 }
 
 
@@ -32,8 +33,11 @@ Project.Create = function (obj) {
     return p;
 }
 
-var App = function (io, socket, input$) {
-    var _input$ = input$;
+var App = function (io, socket, imageProvider) {
+    var _input$ = imageProvider.input$;
+    var _status$ = imageProvider.status$;
+
+    _status$.subscribe(status => io.emit(Socket.CameraStatus, status));
    
     var db = {
         projects: new Datastore({ filename: 'data/projects.db', autoload: true, onload: onDbLoad }),

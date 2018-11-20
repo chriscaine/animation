@@ -12,8 +12,6 @@
         });
     }
 
-
-    
     var add$ = $scope.$createObservableFunction('add').map(() => prompt('Enter name for animation')).filter(x => x !== null);
     var selectProject$ = $scope.$createObservableFunction('selectProject');
     var rewind$ = $scope.$createObservableFunction('rewind');
@@ -32,6 +30,9 @@
     selectProject$.subscribe(function (id) {
         socket.emit(Socket.ProjectSelect, { _id: id });
     });
+
+    $scope.cameraStatus$ = listenSocketEvt(Socket.CameraStatus);
+
     var project$ = listenSocketEvt(Socket.LoadingProject);
     // listen for project coming back from server
     project$.subscribe(log);
