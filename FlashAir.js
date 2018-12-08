@@ -7,8 +7,9 @@ const request = require('request');
 const Config = require('./Config.js');
 const FLASH_AIR_HOST = Config.FlashAirHost;
 const DEFAULT_IMAGE_FOLDER = Config.DefaultImageFolder;
+const pingLength = 4000;
 
-
+console.log(Config);
 var rxRequest = {
     get: function (uri, settings) {
         settings.uri = FLASH_AIR_HOST + uri;
@@ -81,11 +82,11 @@ var FlashAir = function () {
     }
 
     function ping() {
-        return rxRequest.get('command.cgi?op=102', { json: false, timeout:2450 }).map(mapPing);
+        return rxRequest.get('command.cgi?op=102', { json: false, timeout:pingLength-100 }).map(mapPing);
     }
 
     //command({ op: 100, DIR: DEFAULT_IMAGE_FOLDER })
-    this.status$ = Observable.interval(1000).flatMap(ping).share();//.filter(x => x === 1);
+    this.status$ = Observable.interval(pingLength).flatMap(ping).share();//.filter(x => x === 1);
     //status$.subscribe((status) => { console.log('status', status, new Date().getTime()); });
 
     var currentList = [];
@@ -94,8 +95,9 @@ var FlashAir = function () {
     var command$ = this.status$.filter(x => x === 1 || (firstRun === true && x > -1)).flatMap(getDir)
 
     command$.subscribe(function (data) {
+        console.log(data);
         if (data === null) return;
-      //  console.log('check: ', data.length);
+        console.log('check: ', data.length);
         var newItems = [];
         if (!firstRun) {
             data.forEach(function (item) {
@@ -108,7 +110,9 @@ var FlashAir = function () {
         firstRun = false;
         
         newItems.forEach(function (item) {
+            console.log('get', item);
             item.loadImages().subscribe(function () {
+                console.log(item);
                 _input$.next(item);
             });
         });

@@ -8,5 +8,6 @@
     NewProject: 'project:add',
     LoadingProject: 'project:load',
     LoadProjects: 'project:load:list',
-    CameraStatus: 'camera:status'
+    CameraStatus: 'camera:status',
+    ProjectUpdate:'project:update'
 });

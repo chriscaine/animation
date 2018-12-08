@@ -9,17 +9,21 @@
             <h3>Select Project <button ng-click="add()" class="icon-btn pull-right" title="add a new project"><span class="icon">add</span> Add</button></h3>
             <ul class="">
                 <li ng-repeat="item in projects$ | async : this">
-                    <button ng-click="selectProject(item._id)" name="load-project">Project {{item.name}}</button>
+                    <button ng-click="selectProject(item)" name="load-project">Project {{item.name}}</button>
                 </li>
             </ul>
         </section>
         <section class="mid-bar light-grey list">
             <h3>Status: {{cameraStatus$ | async: this}}</h3>
+            <p>Project Name: {{projectName$ | async : this}}</p>
+            <div>
+                {{project$}}
+            </div>
         </section>
         <section class="monitor black">
             <canvas id="canvas"></canvas>
         </section>
-        <section class="controls dark-grey">
+        <section class="controls dark-grey" player="project$">
             <div>
                 <select ng-model="fps" name="fps"><option ng-value="6">6fps</option><option ng-value="12">12fps</option><option ng-value="24">24fps</option></select>
                 <button ng-click="rewind()" name="to-start" type="button" class="icon-btn"><i class="icon">skip_previous</i></button>
@@ -29,7 +33,7 @@
                 <button ng-click="foward()" name="to-end" type="button" class="icon-btn"><i class="icon">skip_next</i></button>
             </div>
             <div>
-                <input type="range" min="0" step="1" max="{{noOfFrames$ | async : this}}" ng-model="range" />
+                <input type="range" min="0" step="1" max="0" value="0" />
             </div>
         </section>
         <section class="exports light-grey">
