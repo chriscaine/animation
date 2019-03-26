@@ -1,89 +1,21 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width" />
     <meta charset="utf-8" />
-    <title></title>
-    <style type="text/css">
-        body{
-            background:#333;
-            color:#e7e7e7;
-            font-family:sans-serif;
-        }
-        *{
-            box-sizing:border-box;
-        }
-        .monitors {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-        .source-monitor-wrapper {
-            grid-column:1;
-            position:relative;
-            padding:0;
-            margin:0;
-            overflow:hidden;
-        }
-        #source-monitor, #playback-monitor, #last-frame {
-            width: 100%;
-            height: auto;
-        }
-        #last-frame {
-            position:absolute;
-            top:0;
-            left:0;
-            opacity:0;
-            transition:all .3s linear;
-        }
-
-        #last-frame.active {
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity:.5;
-
-        }
-
-        .playback-monitor-wrapper {
-            grid-column: 2;
-            overflow: auto;
-        }
-        .controls {
-            padding:5px;
-            line-height:1.5;
-            background:#e5e5e5;
-        }
-
-        #console {
-            background:#111;
-            color:#fff;
-            font-family: Courier New, Courier, monospace;
-            padding:30px;
-            margin:20px;
-            border-radius:10px;
-            height: 200px;
-            overflow:auto;
-            
-        }
-        #frame-count {
-            display:inline-block;
-            text-align:center;
-            color: #333;
-            width: 20em;
-            font-size:11px;
-        }
-
-    </style>
+    <title>Animate</title>
+    <link href="css/app.css?seed=1" rel="stylesheet" />
 </head>
 <body>
-    <div class="monitors">
-        <div class="source-monitor-wrapper">
-            <video id="source-monitor" autoplay="autoplay"></video>
-            <img id="last-frame" />
-        </div>
-        <div class="playback-monitor-wrapper">
-            <canvas id="playback-monitor"></canvas>
-        </div>
+    <!--<div class="monitors">  </div>-->
+    <div class="source-monitor-wrapper">
+        <video id="source-monitor" autoplay="autoplay"></video>
+        <img id="last-frame" />
     </div>
+    <div class="playback-monitor-wrapper">
+        <canvas id="playback-monitor"></canvas>
+    </div>
+
     <div class="controls">
         <button class="btn-take">Take</button>
         <input type="checkbox" id="chk-overlay" />
@@ -99,18 +31,18 @@
 
         <button id="render">Export</button>
     </div>
-    <div></div>
-    <div>
-        <video style="width:300px; height:auto;" id="exported" controls="controls" ></video>
+
+    <div id="export-wrapper">
+        <video style="width:100%; height:auto;" id="exported" controls="controls"></video>
         <p><a id="download" download="">Download Exported Animation</a></p>
     </div>
-    
-    <pre id="console">
+    <div id="console-wrapper">
+        <pre id="console">
 
-    </pre>
+         </pre>
+    </div>
     <script src="js/lib/whammy.js"></script>
     <script src="js/lib/rx.all.min.js"></script>
-    <script src="js/lib/mustache.min.js"></script>
-    <script src="js/app2.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

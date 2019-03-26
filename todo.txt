@@ -1,0 +1,7 @@
+﻿
+-	Export to mp4
+-	Save frames
+-	Delete frames
+-	Restart
+
+-	Build into App

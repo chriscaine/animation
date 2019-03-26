@@ -1,248 +1,308 @@
-﻿"use strict";
-var app = angular.module('app', []);
+﻿const Observable = Rx.Observable;
+const Subject = Rx.Subject;
+const BSubject = Rx.BehaviorSubject;
 
-const Socket = {
-    DirectoryList: 'directory:list',
-    DirectorySelect: 'directory:select',
-    ImageList: 'image:list',
-    MediaList: 'media:list',
-    Render: 'render:start'
-}
-var Render = {
-    Start: 'start',
-    Progress: 'progress',
-    Error: 'error',
-    CodecData: 'codec-data',
-    End: 'end'
-}
-var socket = io.connect(location.origin);
-
-// load webservice
-var Observable = Rx.Observable;
-var Subject = Rx.Subject;
-
-function log(message) {
-    var messages = document.getElementById('messages');
-    var m = document.createElement('li');
-    m.innerHTML = JSON.stringify(message.data);
-    messages.appendChild(m);
-}
-
-function leadingZero(number) {
-    //if (number < 10) return '0000' + number.toString();
-    //if (number < 100) return '000' + number.toString();
-    //if (number < 1000) return '00' + number.toString();
-    //if (number < 10000) return '0' + number.toString();
-    return number.toString();
-}
-function format(str, replacements) {
-    return str.replace(/\{([0-9]{1,3})\}/g, function (a, b) { return replacements[b]; });
-}
-
-function getEl(selector) {
-    return document.querySelector(selector);
-}
-
-function draw(frame, info) {
-    // Display position in process
-    getEl('#frame-count-display').innerText = format("{2} Frame {0} of {1} @ {3} fps duration {4}s", [info.index + 1, info.length, info.exporting, info.frameRate, Math.round(100 * (info.length / info.frameRate)) / 100]);
-    // Create image from Blob and draw to canvas
-    var img = frame.data;
-
-    var ratio = img.width / img.height;
-    var height = canvas.width / ratio;
-
-
-    ctx.drawImage(img, 0, (canvas.height - height) / 2, canvas.width, height);
-   
-}
-
-/*  Set up camera */
-function useWebCamStream(stream) {
-    var video = document.getElementById('video');
-    let videoStream = stream;
-    console.info('Connecting: ', stream.getVideoTracks()[0].label);
-    // if (video.mozSrcObject !== undefined) { //FF18a
-    //    video.mozSrcObject = stream;
-    //} else {
-    video.srcObjectUrl = stream;
-    //        video.src = window.URL.srcObjectURL(stream);
-    //}
-    video.onloadedmetadata = function () {};
-}
-navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(useWebCamStream);
-
-/* Get Elements */
-
-
-var canvas = document.getElementById('previewCanvas');
-var ctx = canvas.getContext('2d');
-var previewImage = document.getElementById('previewImage');
-
-
-/* REGISTER STREAMS */
-/* - INPUTS */
-var singlePlay$ = new Subject(); // set to fasle to pause on frame 1, set to true to play through once, set top null to loop
-var currentFrame$ = new Subject(); // set to frame to display zero index in array
-// handle clicks from the sutter
-// To Do: use merge to set-up to work as Time lapse function
-var shutterClick$ = Observable.fromEvent(getEl('#btn-shutter'), 'click');//.merge(Observable.timer(1500, 300)).take(130);
-// handle export requests
-var exportClick$ = Observable.fromEvent(getEl('#btn-export'), 'click');
-// undo -> deletes last frame
-var undoClick$ = Observable.fromEvent(getEl('#btn-undo'), 'click').filter(x => confirm('Are you sure you want to delete the last frame?'));
-// handle frame rate change requests
-var frameRate$ = Observable.fromEvent(getEl('#frame-rate'), 'change').map(x => parseInt(x.target.value)).startWith(6);
-// grab image from camera, turn to blob, and concatenate array in scan function
-
-var renderFeedback$ = Observable.create(function (observer) {
-    socket.on('render', function (e) {
-        console.log(e);
-        observer.onNext(e);
+function captureFrame(video) {
+    return Observable.create(obs => {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        canvas.width = video.width;
+        canvas.height = video.height;
+        //(canvas.height - height) / 2
+        ctx.drawImage(video.element, 0, 0, canvas.width, canvas.height);
+        video.lastFrame = canvas.toDataURL('image/webp', 70);
+        obs.onNext(video);
+        //canvas.toBlob((blob) => {
+        //    video.lastFrameData = blob;
+        //    obs.onNext(video);
+        //}, 'image/png', 0.9);//.toDataURL();
+        // return video;
     });
-});
+}
 
-var framesListFromServer$ = Observable.create(function (observe) {
-    socket.on(Socket.ImageList, function (list) {
-        observe.onNext(list);
+function downloadVideo(url) {
+    return Observable.create(function (obs) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function (e) {
+            obs.onNext(e.target);
+        };
     });
-}).debounce(100).share();
+}
 
+function convertToFourDigits(val) {
+    if (val < 10) return '000' + val;
+    if (val < 100) return '00' + val;
+    if (val < 1000) return '0' + val;
+    return val.toString();
+}
 
-var fetchImage = function (items) {
-    return Observable.create(function (observe) {
-        items.forEach(function (file, i) {
-            var img = new Image();
-            img.onload = function () {
-                observe.onNext({ name: file.Name, data: img });
-            };
-            img.src = Utilities.Bind('images/{{Parent}}/{{Name}}', file);
+function drawFrame(canvas, url) {
+
+    var ctx = canvas.getContext('2d');
+    //(canvas.height - height) / 2
+    var img = new Image();
+
+    img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    };
+    img.src = url;// URL.createObjectURL(blob);
+
+}
+
+function blobToArrayBuffer(blob) {
+    return Observable.create(function (obs) {
+        var reader = new FileReader();
+        reader.onload = function (evt) {
+            obs.onNext(new Uint8Array(evt.target.result));
+        }
+        reader.readAsArrayBuffer(blob);
+
+    });
+}
+
+function base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function parseArguments(text) {
+    text = text.replace(/\s+/g, ' ');
+    var args = [];
+    // Allow double quotes to not split args.
+    text.split('"').forEach(function (t, i) {
+        t = t.trim();
+        if ((i % 2) === 1) {
+            args.push(t);
+        } else {
+            args = args.concat(t.split(" "));
+        }
+    });
+    return args;
+}
+
+var AnimationApp = function () {
+
+    var worker = null;
+    const workerReady$ = new Subject();
+    const outputFile$ = new Subject();
+    const log$ = new Subject();
+    const consoleEl$ = Observable.just(document.getElementById('console'));
+    const frameCountEl$ = Observable.just(document.getElementById('frame-count'));
+    var ffmpegResult$ = new Subject();
+
+    log$.withLatestFrom(consoleEl$).subscribe(arr => {
+        var el = arr[1];
+        var message = arr[0];
+        el.innerText = el.innerText + '\n\n' + message;
+        el.scrollTo(0, 65000000);
+    });
+
+    function initWorker() {
+        worker = new Worker("/js/webworker.js?seed=5");
+        worker.onmessage = function (event) {
+            var message = event.data;
+            if (message.type === "ready") {
+                isWorkerLoaded = true;
+                workerReady$.onNext(true);
+                //worker.postMessage({
+                //    type: "command",
+                //    arguments: ["-help"]
+                //});
+            } else if (message.type === "stdout") {
+                log$.onNext(message.data);
+            } else if (message.type === "start") {
+                log$.onNext('Worker has received command');
+            } else if (message.type === "done") {
+                //  stopRunning();
+                var buffers = message.data;
+                if (buffers.length) {
+                    log$.onNext('closed');
+                }
+                buffers.forEach(function (file) {
+                    ffmpegResult$.onNext(file);
+                    //outputFile$.onNext(getDownloadLink(file.data, file.name));
+                });
+            }
+        };
+    }
+    initWorker();
+
+    var _this = this;
+    const videoEl$ = Observable.just(document.getElementById('source-monitor'));
+    const deviceListEl$ = Observable.just(document.getElementById('device-list'));
+
+    const imgOverlay$ = Observable.just(document.getElementById('last-frame'));
+    const playbackEl$ = Observable.just(document.getElementById('playback-monitor'));
+    const devices$ = Observable.fromPromise(navigator.mediaDevices.enumerateDevices())
+        .map(x => x.filter(x => x.constructor.name === 'InputDeviceInfo').filter(x => x.kind === 'videoinput'));
+    const selectedDevice$ = Observable.fromEvent(document.getElementById('device-list'), 'change').map(el => el.target.value);
+
+    const renderClick$ = Observable.fromEvent(document.getElementById('render'), 'click');
+
+    devices$.withLatestFrom(deviceListEl$).subscribe(arr => {
+        var el = arr[1];
+        var devices = arr[0];
+        el.innerHTML = '';
+        devices.forEach(x => {
+            var option = document.createElement('option');
+            option.innerHTML = x.label;
+            option.setAttribute('value', x.deviceId);
+            el.append(option);
         });
     });
-}
-
-var framesFromServer$ = framesListFromServer$.flatMap(fetchImage);
-
-//var new$ = Observable.merge(framesListFromServer$.map(true), framesFromServer$.map(false)).filter(x => true);
-
-var frames$ = Observable.merge(framesListFromServer$.map(x => null), framesFromServer$).scan(function (arr, item) {
-    if (item === null) { arr = []; }
-    else { arr.push(item); }
-
-    return arr;
-}, []).share();
 
 
+    const overlayChange$ = Observable.fromEvent(document.getElementById('chk-overlay'), 'change').map(e => e.target.checked).distinctUntilChanged();
 
-renderFeedback$.filter(x => x.type === Render.Progress)
-    .map(x => x.data.frames)
-    .withLatestFrom(frames$.map(x => x.length))
-    .subscribe(x => {
-        document.getElementById('progress-bar').style.opacity = 1;
-        var perc = Math.round(100 * x[0] / x[1]);
-        document.getElementById('progress').style.width = Utilities.Format('{0}%', [perc.toString()]);
-        if (perc === 100) {
-            setTimeout(function () {
-                document.getElementById('progress-bar').style.opacity = 0;
-            }, 3000);
+    const videoSource$ = Observable.merge(selectedDevice$, Observable.just(null)).map(x => ({
+        video: {
+            deviceId: x !== null ? { exact: x } : undefined,
+            width: 9999,
+            height: 9999
         }
+    }));
+
+    const webcamStream$ = videoSource$.flatMap(c => navigator.mediaDevices.getUserMedia(c));
+    // 24fps = 40ms - 12fps = 80ms - 6fps = 160ms
+    const fps$ = Observable.fromEvent(document.getElementById('ddl-fps'), 'change')
+        .map(e => e.target)
+        .startWith(document.getElementById('ddl-fps'))
+        .map(el => el.value)
+        .map(fps => parseInt(fps));
+
+    const playbackInterval$ = Observable.create(obs => setInterval(i => obs.onNext(i), 40))
+        .scan(agg => { return agg + 1; }, 0).map(i => i % 4)
+        .withLatestFrom(fps$)
+        .map(arr => ({ fps: arr[1], interval: arr[0] }))
+        .filter(obj => obj.interval % (24 / obj.fps) === 0)
+        .map(true);
+
+    const takeClick$ = Observable.fromEvent(document.querySelector('.btn-take'), 'click');
+    const source$ = webcamStream$.withLatestFrom(videoEl$).map(arr => {
+        var stream = arr[0];
+        var el = arr[1];
+        el.srcObject = stream;
+        return el;
+    }).flatMap((el) => {
+        return Observable.create(obs => {
+            el.onloadedmetadata = function (e) {
+                obs.onNext({
+                    width: el.videoWidth,
+                    height: el.videoHeight,
+                    element: el
+                });
+            };
+        });
+    }).share();
+
+
+    source$.subscribe(video => {
+        video.element.height = video.height;
+        video.element.width = video.width;
+
     });
 
-/**
- * Get latest list
-      iterate over existing list
-        where new items in list add and insert image data
-        { name : filename, data : blob }
- */
+    const takeFrame$ = takeClick$.withLatestFrom(source$).map(arr => arr[1]).flatMap(captureFrame).share();
+
+    const frames$ = takeFrame$.map(video => video.lastFrame).scan((agg, img) => { agg.push(img); return agg; }, []).share();
 
 
-// collect all status streams for displaying animation
-var refreshPreview$ = Observable.timer(100, 1000 / 24, 10)
-    .withLatestFrom(frameRate$, frames$, singlePlay$.startWith(null), currentFrame$.startWith(0))
-    // limit refreshes based on framerate
-    // timer runs at 24 fps => gets  (24 / framerate) gets the number of frames to skip
-    // where x[0] is the total number of intervals collected
-    .filter(x => x[0] % (24 / x[1]) === 0)
-    // map to readable object
-    .map(x => { return { frameRate: x[1], frames: x[2], singlePlay: x[3], currentFrame: x[4] } });
+    takeFrame$.withLatestFrom(imgOverlay$).subscribe(arr => {
+        var img = arr[1];
+        var frame = arr[0];
 
-// on export button clicks send frame stream - map to duration in seconds frames count  / framerate
-var export$ = exportClick$.withLatestFrom(frameRate$).map(x => x[1]);//.map(x => x[1].length / x[2]);
-var animationEnd$ = new Subject();
+        img.src = frame.lastFrame;
+        //   img.style.width = frame.width + 'px';
+        //   img.style.height = frame.height + 'px';
+    });
 
-/* SUBSCRIPTIONS */
-export$.subscribe(function (fps) {
-    socket.emit('transport', { type: Socket.Render, data: { fps: fps } });
-});
-animationEnd$.subscribe(function () { });
+    //imgOverlay$.subscribe(img => {
+    //    console.log(img);
+    //});
 
-// Select the frame to draw and send to draw function
+    //frames$.subscribe(frames => {
+    //    //  console.log(frames);
+    //});
 
-function nextFrame(obj) {
-    var _frameRate = obj.frameRate;
-    var _frames = obj.frames;
-    var _singlePlay = obj.singlePlay;
-    var i = obj.currentFrame;
-    // loop
-    if (_singlePlay === null) {
-        if (_frames[i]) draw(_frames[i], { index: i, length: _frames.length, exporting: '', frameRate: _frameRate });
-        if (i > _frames.length) {
-            currentFrame$.onNext(0);
+    overlayChange$.withLatestFrom(imgOverlay$).subscribe(arr => {
+        if (arr[0] === true) {
+            arr[1].classList.add('active');
         } else {
-            currentFrame$.onNext(obj.currentFrame + 1);
+            arr[1].classList.remove('active');
         }
-    } else { // single play
-        if (_singlePlay === true) { // play once
-            if (_frames[i]) {
-                draw(_frames[i], { index: i, length: _frames.length, exporting: 'Exporting', frameRate: _frameRate });
-                currentFrame$.onNext(obj.currentFrame + 1);
+    });
+    var currentFrameInt$ = playbackInterval$.withLatestFrom(frames$).scan((agg, arr) => {
+        var [interval, frames, frameCountEl] = arr;
+
+        if (frames.length > 0) {
+            if (agg >= frames.length - 1) {
+                return 0;
             } else {
-                animationEnd$.onNext();
+                return agg + 1;
             }
-        } else { // pause at start
-            if (_frames[0]) draw(_frames[0], { index: 1, length: _frames.length, exporting: 'Exporting', frameRate: _frameRate });
         }
-    }
-}
+        return 0;
+    }, 0);
 
-refreshPreview$.subscribe(obj => { window.requestAnimationFrame(() => nextFrame(obj)) });
+    currentFrameInt$.withLatestFrom(frames$, frameCountEl$).subscribe(arr => arr[2].innerText = (arr[0] + 1) + ' of ' + arr[1].length);
+
+    currentFrameInt$.withLatestFrom(frames$).map(arr => arr[1][arr[0]]).withLatestFrom(playbackEl$)
+        .subscribe(arr => {
+            var [frame, monitor] = arr;
+            drawFrame(monitor, frame);
+        });
+
+    //  renderClick$.subscribe(x => console.log('render click'));
+    workerReady$.subscribe(() => console.log('worker ready'));
+    outputFile$.subscribe(file => console.log('output file', file));
+
+    var webmExport$ = renderClick$.withLatestFrom(frames$, fps$)
+        .map(arr => Whammy.fromImageArray(arr[1], arr[2], false))
+        .flatMap(video => blobToArrayBuffer(video));
 
 
+    // convert to Mpeg 4 
+    Observable.empty().withLatestFrom(webmExport$).map(arr => arr[1])
+        .map(videoArrayBuffer => {
+            var args = ['-i', 'input.webm', 'output.mp4'];
+            return {
+                type: 'command',
+                TOTAL_MEMORY: 512 * 1024 * 1024,
+                arguments: args,
+                files: [{ name: 'input.webm', data: videoArrayBuffer }]
+            };
+        }).subscribe(x => worker.postMessage(x));
+    
+    Observable.merge([webmExport$, ffmpegResult$]).subscribe(x => {
 
-app.controller('AppController', function ($scope, $timeout) {
-    $scope.list = [];
-    $scope.mediaList = [];
-    socket.on(Socket.DirectoryList, function (list) {
-        console.log(list);
-        $scope.folderList = list;
-        $timeout(x => null);
+        var playbackEl = document.getElementById('exported');
+        var downloadEl = document.getElementById('download');
+        
+        var blob = null;
+        if (x.constructor.name === 'Uint8Array') {
+            blob = new Blob([x], { type: 'video/webm' });
+        } else {
+            blob = new Blob([new Uint8Array(x.data)], { type: 'video/mp4' });
+        }
+        var reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onload = function (base64) {
+            playbackEl.src = base64.target.result;
+            downloadEl.href = base64.target.result;
+        };
     });
 
-    $scope.selectedFolder = null;
+};
 
-    $scope.selectFolder = function (folder) {
-        $scope.selectedFolder = folder;
-        socket.emit('transport', { type: Socket.DirectoryList, data: folder.Name });
-    }
-
-    socket.on(Socket.MediaList, function (list) {
-        $scope.mediaList = list;
-        $timeout(x => null);
-    });
-
-    socket.on(Socket.ImageList, function (list) {
-        $scope.imageList = list;
-        $timeout(x => null);
-    });
-
-    $scope.cleanUrl = function (url) {
-        return url.replace('public/', '');
-    }
-
-    $scope.playVideo = function (url) {
-        $scope.src = url.replace('public/', '');
-    }
-
-
-});
-
+var app = new AnimationApp();
